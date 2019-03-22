@@ -22,12 +22,3 @@ services:
       - MYSQL_PASSWORD=passw0rd
     ports:
       - 13306:3306
-
-  page:
-    image: python:3.7-alpine
-    volumes:
-      - ./display:/var/www/html
-    working_dir: /var/www/html
-    command: python -m http.server 8000
-    ports:
-      - 18000:8000
