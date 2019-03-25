@@ -16,13 +16,37 @@ CREATE TABLE `events`
   KEY `idx_event_id` (`event_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE `statuses`
+CREATE TABLE `event_statuses`
 (
-  `event_id`   varchar(30) NOT NULL,
   `owner_id`   varchar(33) NOT NULL,
+  `event_id`   varchar(30) NOT NULL,
   `status`     int(1) NOT NULL,
   `created_at` bigint(20) unsigned NOT NULL,
   `updated_at` bigint(20) unsigned NOT NULL,
-  PRIMARY KEY (`event_id`, `owner_id`)
-  KEY `idx_owner_id` (`owner_id`)
+  PRIMARY KEY (`owner_id`),
+  KEY `idx_event_id` (`event_id`),
+  KEY `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `event_participants`
+(
+  `user_id`         varchar(33) NOT NULL,
+  `event_id`        varchar(30) NOT NULL,
+  `is_participated` tinyint(1) NOT NULL,
+  `created_at`      bigint(20) unsigned NOT NULL,
+  `updated_at`      bigint(20) unsigned NOT NULL,
+  PRIMARY KEY (`user_id`),
+  KEY `idx_event_id` (`event_id`),
+  KEY `idx_is_participated` (`is_participated`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `event_votes`
+(
+  `event_id`   varchar(30) NOT NULL,
+  `user_id`    varchar(33) NOT NULL,
+  `vote`       int(1) NOT NULL,
+  `created_at` bigint(20) unsigned NOT NULL,
+  `updated_at` bigint(20) unsigned NOT NULL,
+  PRIMARY KEY (`event_id`, `user_id`),
+  KEY `idx_user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -23,6 +23,7 @@ func NewOwnerRepository(dbmClient *db.Client, dbsClient *db.Client) repository.O
 	}
 }
 
+// TODO 共通化
 func (r *ownerRepository) WithTransaction(ctx context.Context, txFunc func(*sql.Tx) error) error {
 	tx, err := r.dbm.DB.BeginTx(ctx, nil)
 	if err != nil {
@@ -56,7 +57,7 @@ func (r *ownerRepository) Create(owner *domain.Owner) error {
 
 func (r *ownerRepository) Get(ownerID domain.OwnerID) (*domain.Owner, error) {
 	log.Println("called infrastructure.owner Get")
-	var ret domain.Owner
+	var col ownerColumns
 	err := squirrel.Select("owner_id", "created_at", "updated_at").
 		From(OWNERS).
 		Where(squirrel.Eq{
@@ -65,9 +66,13 @@ func (r *ownerRepository) Get(ownerID domain.OwnerID) (*domain.Owner, error) {
 		RunWith(r.dbs.DB).
 		QueryRow().
 		Scan(
-			&ret.ID,
-			&ret.CreatedAt,
-			&ret.UpdatedAt,
+			&col.OwnerID,
+			&col.CreatedAt,
+			&col.UpdatedAt,
 		)
-	return &ret, err
+	return &domain.Owner{
+		ID:        col.OwnerID,
+		CreatedAt: col.CreatedAt,
+		UpdatedAt: col.UpdatedAt,
+	}, err
 }

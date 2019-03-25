@@ -42,12 +42,13 @@ func main() {
 	// init repository
 	eventRepo := infrastructure.NewEventRepository(dbmClient, dbsClient)
 	ownerRepo := infrastructure.NewOwnerRepository(dbmClient, dbsClient)
+	userRepo := infrastructure.NewUserRepository(dbmClient, dbsClient)
 	// init application service
-	CallbackService := application.NewCallbackService(eventRepo, ownerRepo)
+	callbackService := application.NewCallbackService(eventRepo, ownerRepo, userRepo)
 
 	// inject all services
 	services := &handler.Services{
-		CallbackService: CallbackService,
+		CallbackService: callbackService,
 	}
 
 	bot := handler.NewLineBot(&conf.Line)

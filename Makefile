@@ -26,6 +26,7 @@ run: setup
 
 ## Docker local
 CONTAINER_PREFIX:=linebot-sample
+DB_PORT:=13306
 
 .PHONY: dstart dstop dstatus dlogin dclean dlog dmigrate
 dstart: setup
@@ -54,7 +55,7 @@ dlog:
 
 dmigrate: migrate
 	@echo "migrate"
-	@migrate -path ./_sql -database 'mysql://root:root@tcp(0.0.0.0:13306)/sample' -verbose up
+	@migrate -path ./_sql -database 'mysql://root:root@tcp(0.0.0.0:$(DB_PORT))/sample' -verbose up
 
 ## Install package
 .PHONY: golint migrate

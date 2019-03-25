@@ -5,8 +5,8 @@ type EventID string
 
 const (
 	EVENT_STABDBY EventStatus = iota
-	EVENT_OPEN                = iota
-	EVENT_CLOSED              = iota
+	EVENT_OPEN
+	EVENT_CLOSED
 )
 
 type Event struct {
