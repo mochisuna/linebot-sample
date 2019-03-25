@@ -81,36 +81,21 @@ func (r *eventRepository) Update(event *domain.Event) error {
 	return err
 }
 
-func (r *eventRepository) Get(ownerID domain.OwnerID) (*domain.Event, error) {
+func (r *eventRepository) Get(ownerID domain.OwnerID, status *domain.EventStatus) (*domain.Event, error) {
 	log.Println("called infrastructure.event Get")
 	var ret domain.Event
-	err := squirrel.Select("event_id", "owner_id", "status", "created_at", "updated_at").
-		From(STATUSES).
-		Where(squirrel.Eq{
-			"owner_id": ownerID,
-		}).
-		RunWith(r.dbs.DB).
-		QueryRow().
-		Scan(
-			&ret.ID,
-			&ret.OwnerID,
-			&ret.Status,
-			&ret.CreatedAt,
-			&ret.UpdatedAt,
-		)
-	return &ret, err
-}
-
-// TODO 統合
-func (r *eventRepository) GetWithStatus(ownerID domain.OwnerID, status domain.EventStatus) (*domain.Event, error) {
-	log.Println("called infrastructure.event GetWithStatus")
-	var ret domain.Event
-	err := squirrel.Select("event_id", "owner_id", "status", "created_at", "updated_at").
-		From(STATUSES).
-		Where(squirrel.Eq{
+	param := squirrel.Eq{
+		"owner_id": ownerID,
+	}
+	if status != nil {
+		param = squirrel.Eq{
 			"owner_id": ownerID,
 			"status":   status,
-		}).
+		}
+	}
+	err := squirrel.Select("event_id", "owner_id", "status", "created_at", "updated_at").
+		From(STATUSES).
+		Where(param).
 		RunWith(r.dbs.DB).
 		QueryRow().
 		Scan(

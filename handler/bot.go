@@ -25,6 +25,9 @@ const (
 	ActionEventCancel = "cancel"
 )
 
+// TODO ファイルから読み出すように変更
+const HelpMessage = "このbotについて\nこのbotはLT会等で、参加者からアンケートを募集することを目的に作られています。\n\n以下のアクション一覧から利用したいコマンドを実行してください。"
+
 type Line struct {
 	Bot *linebot.Client
 }
@@ -60,11 +63,11 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 				case ActionEventFinish:
 					response = s.getMessageFinishEvent(ctx, req)
 				case ActionEventJoin:
-					response = linebot.NewTextMessage("3")
+					response = linebot.NewTextMessage("TODO 参加できるイベントのリストを作成")
 				case ActionEventLeave:
-					response = linebot.NewTextMessage("4")
+					response = linebot.NewTextMessage("TODO イベントに参加している場合のみ、イベントから離脱できるように変更")
 				case ActionEventHelp:
-					response = linebot.NewTextMessage("5")
+					response = linebot.NewTextMessage(HelpMessage)
 				case ActionEventVote:
 					response = linebot.NewTextMessage("6")
 				case ActionEventCancel:
@@ -83,6 +86,8 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 }
+
+// getMessageFollowAction はbotをフォローした際に実行されるアクション
 func (s *Server) getMessageFollowAction(ctx context.Context, req *linebot.Event) linebot.SendingMessage {
 	ownerID := domain.OwnerID(req.Source.UserID)
 	requestID := middleware.GetReqID(ctx)
@@ -102,17 +107,33 @@ func (s *Server) getMessageFollowAction(ctx context.Context, req *linebot.Event)
 	return linebot.NewTextMessage(profile.DisplayName + "様。\n登録ありがとうございます。")
 }
 
-func (s *Server) getMessageOpenEvent(ctx context.Context, req *linebot.Event) linebot.SendingMessage {
-	requestID := middleware.GetReqID(ctx)
-	ownerID := domain.OwnerID(req.Source.UserID)
+// isOwnerOfEvent は自分がオーナーのイベントがあるかどうかを返します
+func (s *Server) isOwnerOfEvent(ownerID domain.OwnerID) (bool, error) {
 	ref, err := s.CallbackService.ReferEventStatus(ownerID, domain.EVENT_OPEN)
 	if err != nil {
 		if err != sql.ErrNoRows {
-			return linebot.NewTextMessage("イベント参照時にエラーが発生しました")
+			return false, err
 		}
-	} else if ref.OwnerID == ownerID {
+		// sql.ErrNoRows ならすぐに返却してよい
+		return false, nil
+	}
+	return ref.OwnerID == ownerID, nil
+}
+
+// getMessageOpenEvent イベント開催アクション
+func (s *Server) getMessageOpenEvent(ctx context.Context, req *linebot.Event) linebot.SendingMessage {
+	requestID := middleware.GetReqID(ctx)
+	ownerID := domain.OwnerID(req.Source.UserID)
+
+	owned, err := s.isOwnerOfEvent(ownerID)
+	if err != nil {
+		log.Fatalf("%v| error reason: %#v", requestID, err.Error())
+		return linebot.NewTextMessage("イベント参照時にエラーが発生しました")
+	}
+	if owned {
 		return linebot.NewTextMessage("あなたが主催のイベントが開催中です")
 	}
+
 	_, err = s.CallbackService.ReferEventStatus(ownerID, domain.EVENT_STABDBY)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -123,6 +144,7 @@ func (s *Server) getMessageOpenEvent(ctx context.Context, req *linebot.Event) li
 				return linebot.NewTextMessage("イベントスタンバイ時にエラーが発生しました")
 			}
 		} else {
+			log.Fatalf("%v| error reason: %#v", requestID, err.Error())
 			return linebot.NewTextMessage("イベント参照時にエラーが発生しました")
 		}
 	}
@@ -140,23 +162,32 @@ func (s *Server) getMessageOpenEvent(ctx context.Context, req *linebot.Event) li
 func (s *Server) getMessageStartEvent(ctx context.Context, req *linebot.Event) linebot.SendingMessage {
 	requestID := middleware.GetReqID(ctx)
 	ownerID := domain.OwnerID(req.Source.UserID)
-	_, err := s.CallbackService.UpdateEventStatus(ctx, ownerID, domain.EVENT_OPEN)
+	owned, err := s.isOwnerOfEvent(ownerID)
+	if err != nil {
+		log.Fatalf("%v| error reason: %#v", requestID, err.Error())
+		return linebot.NewTextMessage("イベント参照時にエラーが発生しました")
+	}
+	if owned {
+		return linebot.NewTextMessage("あなたが主催のイベントが開催中です")
+	}
+	res, err := s.CallbackService.UpdateEventStatus(ctx, ownerID, domain.EVENT_OPEN)
 	if err != nil {
 		log.Fatalf("%v| error reason: %#v", requestID, err.Error())
 		return linebot.NewTextMessage("ステータス更新時にエラーが発生しました")
 	}
-	return linebot.NewTextMessage("イベントを開催しました")
+	msg := fmt.Sprintf("イベントを開催しました。\nイベント番号:\n%v\nを参加者に共有しましょう", res.ID)
+	return linebot.NewTextMessage(msg)
 }
 
 func (s *Server) getMessageCloseEvent(ctx context.Context, req *linebot.Event) linebot.SendingMessage {
 	requestID := middleware.GetReqID(ctx)
 	ownerID := domain.OwnerID(req.Source.UserID)
-	_, err := s.CallbackService.ReferEventStatus(ownerID, domain.EVENT_OPEN)
+	owned, err := s.isOwnerOfEvent(ownerID)
 	if err != nil {
-		if err != sql.ErrNoRows {
-			log.Fatalf("%v| error reason: %#v", requestID, err.Error())
-			return linebot.NewTextMessage("イベント参照時にエラーが発生しました")
-		}
+		log.Fatalf("%v| error reason: %#v", requestID, err.Error())
+		return linebot.NewTextMessage("イベント参照時にエラーが発生しました")
+	}
+	if !owned {
 		return linebot.NewTextMessage("あなたはまだイベントを主催していません")
 	}
 	return linebot.NewTemplateMessage(
@@ -172,7 +203,15 @@ func (s *Server) getMessageCloseEvent(ctx context.Context, req *linebot.Event) l
 func (s *Server) getMessageFinishEvent(ctx context.Context, req *linebot.Event) linebot.SendingMessage {
 	requestID := middleware.GetReqID(ctx)
 	ownerID := domain.OwnerID(req.Source.UserID)
-	_, err := s.CallbackService.UpdateEventStatus(ctx, ownerID, domain.EVENT_CLOSED)
+	owned, err := s.isOwnerOfEvent(ownerID)
+	if err != nil {
+		log.Fatalf("%v| error reason: %#v", requestID, err.Error())
+		return linebot.NewTextMessage("イベント参照時にエラーが発生しました")
+	}
+	if !owned {
+		return linebot.NewTextMessage("あなたはまだイベントを主催していません")
+	}
+	_, err = s.CallbackService.UpdateEventStatus(ctx, ownerID, domain.EVENT_CLOSED)
 	if err != nil {
 		log.Fatalf("%v| error reason: %#v", requestID, err.Error())
 		return linebot.NewTextMessage("ステータス更新時にエラーが発生しました")

@@ -52,12 +52,12 @@ func (s *CallbackService) Follow(ctx context.Context, ownerID domain.OwnerID) (*
 
 func (s *CallbackService) ReferEventStatus(ownerID domain.OwnerID, status domain.EventStatus) (*domain.Event, error) {
 	log.Println("application.ReferEventStatus")
-	return s.eventRepo.GetWithStatus(ownerID, status)
+	return s.eventRepo.Get(ownerID, &status)
 }
 
 func (s *CallbackService) UpdateEventStatus(ctx context.Context, ownerID domain.OwnerID, status domain.EventStatus) (*domain.Event, error) {
 	log.Println("application.UpdateEventStatus")
-	event, err := s.eventRepo.Get(ownerID)
+	event, err := s.eventRepo.Get(ownerID, nil)
 	if err != nil {
 		return nil, err
 	}
