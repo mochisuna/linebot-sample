@@ -37,13 +37,10 @@ func (s *CallbackService) Follow(ctx context.Context, ownerID domain.OwnerID) (*
 		UpdatedAt: now,
 	}
 
-	_, err := s.ownerRepo.Get(ownerID)
+	_, err := s.ownerRepo.Select(ownerID)
 	if err != nil && err == sql.ErrNoRows {
 		err := s.ownerRepo.WithTransaction(ctx, func(tx *sql.Tx) error {
-			if err := s.ownerRepo.Create(owner); err != nil {
-				return err
-			}
-			return nil
+			return s.ownerRepo.Create(owner, tx)
 		})
 		if err != nil {
 			return nil, err
@@ -52,14 +49,14 @@ func (s *CallbackService) Follow(ctx context.Context, ownerID domain.OwnerID) (*
 	return owner, nil
 }
 
-func (s *CallbackService) ReferEventStatus(ownerID domain.OwnerID, status domain.EventStatus) (*domain.Event, error) {
-	log.Println("application.ReferEventStatus")
-	return s.eventRepo.GetByOwnerID(ownerID, &status)
+func (s *CallbackService) GetEventByOwnerID(ownerID domain.OwnerID, status domain.EventStatus) (*domain.Event, error) {
+	log.Println("application.GetEventByOwnerID")
+	return s.eventRepo.SelectByOwnerID(ownerID, &status)
 }
 
 func (s *CallbackService) UpdateEventStatus(ctx context.Context, ownerID domain.OwnerID, status domain.EventStatus) (*domain.Event, error) {
 	log.Println("application.UpdateEventStatus")
-	event, err := s.eventRepo.GetByOwnerID(ownerID, nil)
+	event, err := s.eventRepo.SelectByOwnerID(ownerID, &status)
 	if err != nil {
 		return nil, err
 	}
@@ -67,10 +64,7 @@ func (s *CallbackService) UpdateEventStatus(ctx context.Context, ownerID domain.
 	event.Status = status
 
 	err = s.eventRepo.WithTransaction(ctx, func(tx *sql.Tx) error {
-		if err := s.eventRepo.Update(event); err != nil {
-			return err
-		}
-		return nil
+		return s.eventRepo.Update(event, tx)
 	})
 	return event, err
 }
@@ -87,36 +81,64 @@ func (s *CallbackService) RegisterEvent(ctx context.Context, ownerID domain.Owne
 	}
 
 	err := s.eventRepo.WithTransaction(ctx, func(tx *sql.Tx) error {
-		if err := s.eventRepo.Create(event); err != nil {
-			return err
-		}
-		return nil
+		return s.eventRepo.Create(event, tx)
 	})
 	return event, err
 }
+func (s *CallbackService) GetParticipatedEvent(userID domain.UserID) (*domain.User, error) {
+	log.Println("application.GetParticipatedEvent")
+	return s.userRepo.SelectByIDAndStatus(&userID, true)
+}
 
-func (s *CallbackService) ParticipateEvent(ctx context.Context, userID domain.UserID, eventID domain.EventID) error {
-	log.Println("application.RegisterEvent")
+func (s *CallbackService) GetActiveEvents() ([]domain.Event, error) {
+	log.Println("application.GetActiveEvents")
+	status := domain.EVENT_OPEN
+	return s.eventRepo.SelectList(&status)
+}
+
+func (s *CallbackService) ParticipateEvent(ctx context.Context, userID *domain.UserID, eventID *domain.EventID) error {
+	log.Println("application.ParticipateEvent")
 	now := int(time.Now().Unix())
 	user := &domain.User{
-		ID:             userID,
-		EventID:        eventID,
+		ID:             *userID,
+		EventID:        *eventID,
 		IsParticipated: true,
 		Vote:           domain.NOT_VOTED,
 		CreatedAt:      now,
 		UpdatedAt:      now,
 	}
-
-	err := s.userRepo.WithTransaction(ctx, func(tx *sql.Tx) error {
-		if err := s.userRepo.Participate(user); err != nil {
+	// not foundの場合だけUPDATEする
+	ret, err := s.userRepo.Select(userID, eventID)
+	if err != nil {
+		if err != sql.ErrNoRows {
 			return err
 		}
-		return nil
+	}
+
+	return s.userRepo.WithTransaction(ctx, func(tx *sql.Tx) error {
+		if len(ret.ID) > 0 {
+			return s.userRepo.Update(user, tx)
+		}
+		return s.userRepo.Participate(user, tx)
 	})
-	return err
 }
 
-func (s *CallbackService) ReferEvent(eventID domain.EventID) (*domain.Event, error) {
-	log.Println("application.RegisterEvent")
-	return s.eventRepo.GetByEventID(eventID)
+func (s *CallbackService) GetEventByEventID(eventID domain.EventID) (*domain.Event, error) {
+	log.Println("application.GetEventByEventID")
+	return s.eventRepo.SelectByEventID(eventID)
+}
+
+func (s *CallbackService) LeaveEvent(ctx context.Context, userID *domain.UserID, eventID *domain.EventID) error {
+	log.Println("application.LeaveEvent")
+	now := int(time.Now().Unix())
+	user := &domain.User{
+		ID:             *userID,
+		EventID:        *eventID,
+		IsParticipated: false,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+	}
+	return s.userRepo.WithTransaction(ctx, func(tx *sql.Tx) error {
+		return s.userRepo.Update(user, tx)
+	})
 }

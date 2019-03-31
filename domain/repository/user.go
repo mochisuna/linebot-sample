@@ -9,8 +9,9 @@ import (
 
 type UserRepository interface {
 	WithTransaction(ctx context.Context, txFunc func(*sql.Tx) error) error
-	Get(*domain.User) (*domain.User, error)
-	Update(*domain.User) error
-	Participate(*domain.User) error
-	Vote(*domain.User) error
+	Select(*domain.UserID, *domain.EventID) (*domain.User, error)
+	SelectByIDAndStatus(*domain.UserID, bool) (*domain.User, error)
+	Update(*domain.User, *sql.Tx) error
+	Participate(*domain.User, *sql.Tx) error
+	Vote(*domain.User, *sql.Tx) error
 }

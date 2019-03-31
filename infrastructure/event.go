@@ -43,12 +43,12 @@ func (r *eventRepository) WithTransaction(ctx context.Context, txFunc func(*sql.
 	return err
 }
 
-func (r *eventRepository) Create(event *domain.Event) error {
+func (r *eventRepository) Create(event *domain.Event, tx *sql.Tx) error {
 	log.Println("called infrastructure.event Create")
 	_, err := squirrel.Insert(EVENTS).
 		Columns("event_id", "created_at", "updated_at").
 		Values(event.ID, event.CreatedAt, event.UpdatedAt).
-		RunWith(r.dbm.DB).
+		RunWith(tx).
 		Exec()
 	if err != nil {
 		return err
@@ -56,7 +56,7 @@ func (r *eventRepository) Create(event *domain.Event) error {
 	_, err = squirrel.Insert(EVENT_STATUSES).
 		Columns("event_id", "owner_id", "status", "created_at", "updated_at").
 		Values(event.ID, event.OwnerID, event.Status, event.CreatedAt, event.UpdatedAt).
-		RunWith(r.dbm.DB).
+		RunWith(tx).
 		Exec()
 	if err != nil {
 		return err
@@ -64,7 +64,7 @@ func (r *eventRepository) Create(event *domain.Event) error {
 	return nil
 }
 
-func (r *eventRepository) Update(event *domain.Event) error {
+func (r *eventRepository) Update(event *domain.Event, tx *sql.Tx) error {
 	log.Println("called infrastructure.event Update")
 	_, err := squirrel.Update(EVENT_STATUSES).
 		SetMap(squirrel.Eq{
@@ -74,12 +74,15 @@ func (r *eventRepository) Update(event *domain.Event) error {
 		Where(squirrel.Eq{
 			"owner_id": event.OwnerID,
 		}).
-		RunWith(r.dbm.DB).
+		Where(squirrel.NotEq{
+			"status": domain.EVENT_CLOSED,
+		}).
+		RunWith(tx).
 		Exec()
 	return err
 }
-func (r *eventRepository) GetByOwnerID(ownerID domain.OwnerID, status *domain.EventStatus) (*domain.Event, error) {
-	log.Println("called infrastructure.event GetByOwnerID")
+func (r *eventRepository) SelectByOwnerID(ownerID domain.OwnerID, status *domain.EventStatus) (*domain.Event, error) {
+	log.Println("called infrastructure.event SelectByOwnerID")
 	var col eventStatusColumns
 	param := squirrel.Eq{
 		"owner_id": ownerID,
@@ -87,7 +90,7 @@ func (r *eventRepository) GetByOwnerID(ownerID domain.OwnerID, status *domain.Ev
 	if status != nil {
 		param = squirrel.Eq{
 			"owner_id": ownerID,
-			"status":   status,
+			"status":   *status,
 		}
 	}
 	err := squirrel.Select("event_id", "owner_id", "status", "created_at", "updated_at").
@@ -111,8 +114,9 @@ func (r *eventRepository) GetByOwnerID(ownerID domain.OwnerID, status *domain.Ev
 	}, err
 }
 
-func (r *eventRepository) GetByEventID(eventID domain.EventID) (*domain.Event, error) {
-	log.Println("called infrastructure.event GetByEventID")
+// TODO Select関数として統合
+func (r *eventRepository) SelectByEventID(eventID domain.EventID) (*domain.Event, error) {
+	log.Println("called infrastructure.event SelectByEventID")
 	var col eventStatusColumns
 	err := squirrel.Select("event_id", "owner_id", "status", "created_at", "updated_at").
 		From(EVENT_STATUSES).
@@ -137,13 +141,13 @@ func (r *eventRepository) GetByEventID(eventID domain.EventID) (*domain.Event, e
 	}, err
 }
 
-func (r *eventRepository) GetList(status *domain.EventStatus) ([]domain.Event, error) {
-	log.Println("called infrastructure.event Get")
+func (r *eventRepository) SelectList(status *domain.EventStatus) ([]domain.Event, error) {
+	log.Println("called infrastructure.event SelectList")
 	var ret []domain.Event
 	rows, err := squirrel.Select("event_id", "owner_id", "status", "created_at", "updated_at").
 		From(EVENT_STATUSES).
 		Where(squirrel.Eq{
-			"status": status,
+			"status": *status,
 		}).
 		RunWith(r.dbs.DB).
 		Query()

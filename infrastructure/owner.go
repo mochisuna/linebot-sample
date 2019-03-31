@@ -44,19 +44,19 @@ func (r *ownerRepository) WithTransaction(ctx context.Context, txFunc func(*sql.
 }
 
 // upsert 処理
-func (r *ownerRepository) Create(owner *domain.Owner) error {
+func (r *ownerRepository) Create(owner *domain.Owner, tx *sql.Tx) error {
 	log.Println("called infrastructure.owner Create")
 	_, err := squirrel.Insert(OWNERS).
 		Columns("owner_id", "created_at", "updated_at").
 		Values(owner.ID, owner.CreatedAt, owner.UpdatedAt).
-		RunWith(r.dbm.DB).
+		RunWith(tx).
 		Exec()
 	return err
 
 }
 
-func (r *ownerRepository) Get(ownerID domain.OwnerID) (*domain.Owner, error) {
-	log.Println("called infrastructure.owner Get")
+func (r *ownerRepository) Select(ownerID domain.OwnerID) (*domain.Owner, error) {
+	log.Println("called infrastructure.owner Select")
 	var col ownerColumns
 	err := squirrel.Select("owner_id", "created_at", "updated_at").
 		From(OWNERS).

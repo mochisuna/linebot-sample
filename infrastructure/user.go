@@ -43,14 +43,14 @@ func (r *userRepository) WithTransaction(ctx context.Context, txFunc func(*sql.T
 	return err
 }
 
-func (r *userRepository) Get(user *domain.User) (*domain.User, error) {
-	log.Println("called infrastructure.user Get")
+func (r *userRepository) Select(userID *domain.UserID, eventID *domain.EventID) (*domain.User, error) {
+	log.Println("called infrastructure.user Select")
 	var col eventParticipantsColumns
 	err := squirrel.Select("user_id", "event_id", "is_participated", "created_at", "updated_at").
 		From(EVENT_PARTICIPANTS).
 		Where(squirrel.Eq{
-			"user_id":  user.ID,
-			"event_id": user.EventID,
+			"user_id":  *userID,
+			"event_id": *eventID,
 		}).
 		RunWith(r.dbs.DB).
 		QueryRow().
@@ -70,7 +70,34 @@ func (r *userRepository) Get(user *domain.User) (*domain.User, error) {
 	}, err
 }
 
-func (r *userRepository) Update(user *domain.User) error {
+func (r *userRepository) SelectByIDAndStatus(userID *domain.UserID, isParticipated bool) (*domain.User, error) {
+	log.Println("called infrastructure.user SelectByIDAndStatus")
+	var col eventParticipantsColumns
+	err := squirrel.Select("user_id", "event_id", "is_participated", "created_at", "updated_at").
+		From(EVENT_PARTICIPANTS).
+		Where(squirrel.Eq{
+			"user_id":         *userID,
+			"is_participated": isParticipated,
+		}).
+		RunWith(r.dbs.DB).
+		QueryRow().
+		Scan(
+			&col.UserID,
+			&col.EventID,
+			&col.IsParticipated,
+			&col.CreatedAt,
+			&col.UpdatedAt,
+		)
+	return &domain.User{
+		ID:             col.UserID,
+		EventID:        col.EventID,
+		IsParticipated: col.IsParticipated,
+		CreatedAt:      col.CreatedAt,
+		UpdatedAt:      col.UpdatedAt,
+	}, err
+}
+
+func (r *userRepository) Update(user *domain.User, tx *sql.Tx) error {
 	log.Println("called infrastructure.user Update")
 	_, err := squirrel.Update(EVENT_PARTICIPANTS).
 		SetMap(squirrel.Eq{
@@ -81,17 +108,17 @@ func (r *userRepository) Update(user *domain.User) error {
 			"user_id":  user.ID,
 			"event_id": user.EventID,
 		}).
-		RunWith(r.dbm.DB).
+		RunWith(tx).
 		Exec()
 	return err
 }
 
-func (r *userRepository) Participate(user *domain.User) error {
+func (r *userRepository) Participate(user *domain.User, tx *sql.Tx) error {
 	log.Println("called infrastructure.user Participate")
 	_, err := squirrel.Insert(EVENT_PARTICIPANTS).
 		Columns("event_id", "user_id", "is_participated", "created_at", "updated_at").
 		Values(user.EventID, user.ID, user.IsParticipated, user.CreatedAt, user.UpdatedAt).
-		RunWith(r.dbm.DB).
+		RunWith(tx).
 		Exec()
 	if err != nil {
 		return err
@@ -99,7 +126,7 @@ func (r *userRepository) Participate(user *domain.User) error {
 	_, err = squirrel.Insert(EVENT_VOTES).
 		Columns("user_id", "event_id", "vote", "created_at", "updated_at").
 		Values(user.ID, user.EventID, domain.NOT_VOTED, user.CreatedAt, user.UpdatedAt).
-		RunWith(r.dbm.DB).
+		RunWith(tx).
 		Exec()
 	if err != nil {
 		return err
@@ -107,8 +134,8 @@ func (r *userRepository) Participate(user *domain.User) error {
 	return nil
 }
 
-func (r *userRepository) Vote(user *domain.User) error {
-	log.Println("called infrastructure.user Update")
+func (r *userRepository) Vote(user *domain.User, tx *sql.Tx) error {
+	log.Println("called infrastructure.user Vote")
 	_, err := squirrel.Update(EVENT_VOTES).
 		SetMap(squirrel.Eq{
 			"vote":       user.Vote,
@@ -118,7 +145,7 @@ func (r *userRepository) Vote(user *domain.User) error {
 			"user_id":  user.ID,
 			"event_id": user.EventID,
 		}).
-		RunWith(r.dbm.DB).
+		RunWith(tx).
 		Exec()
 	return err
 }

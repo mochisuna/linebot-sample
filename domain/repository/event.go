@@ -9,9 +9,9 @@ import (
 
 type EventRepository interface {
 	WithTransaction(ctx context.Context, txFunc func(*sql.Tx) error) error
-	GetByOwnerID(domain.OwnerID, *domain.EventStatus) (*domain.Event, error)
-	GetByEventID(domain.EventID) (*domain.Event, error)
-	GetList(*domain.EventStatus) ([]domain.Event, error)
-	Update(*domain.Event) error
-	Create(*domain.Event) error
+	SelectByOwnerID(domain.OwnerID, *domain.EventStatus) (*domain.Event, error)
+	SelectByEventID(domain.EventID) (*domain.Event, error)
+	SelectList(*domain.EventStatus) ([]domain.Event, error)
+	Update(*domain.Event, *sql.Tx) error
+	Create(*domain.Event, *sql.Tx) error
 }

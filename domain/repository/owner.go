@@ -9,6 +9,6 @@ import (
 
 type OwnerRepository interface {
 	WithTransaction(ctx context.Context, txFunc func(*sql.Tx) error) error
-	Get(domain.OwnerID) (*domain.Owner, error)
-	Create(*domain.Owner) error
+	Select(domain.OwnerID) (*domain.Owner, error)
+	Create(*domain.Owner, *sql.Tx) error
 }

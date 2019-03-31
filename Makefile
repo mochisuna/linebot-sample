@@ -26,7 +26,7 @@ run: setup
 
 ## Docker local
 CONTAINER_PREFIX:=linebot-sample
-DB_PORT:=13306
+DB_PORT:=23306
 
 .PHONY: dstart dstop dstatus dlogin dclean dlog dmigrate
 dstart: setup

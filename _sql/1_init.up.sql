@@ -23,7 +23,8 @@ CREATE TABLE `event_statuses`
   `status`     int(1) NOT NULL,
   `created_at` bigint(20) unsigned NOT NULL,
   `updated_at` bigint(20) unsigned NOT NULL,
-  PRIMARY KEY (`owner_id`),
+  PRIMARY KEY (`owner_id`, `event_id`),
+  KEY `idx_owner_id` (`owner_id`),
   KEY `idx_event_id` (`event_id`),
   KEY `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -35,8 +36,8 @@ CREATE TABLE `event_participants`
   `is_participated` tinyint(1) NOT NULL,
   `created_at`      bigint(20) unsigned NOT NULL,
   `updated_at`      bigint(20) unsigned NOT NULL,
-  PRIMARY KEY (`user_id`),
-  KEY `idx_event_id` (`event_id`),
+  PRIMARY KEY (`user_id`, `event_id`),
+  KEY `user_id` (`user_id`),
   KEY `idx_is_participated` (`is_participated`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

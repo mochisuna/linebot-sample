@@ -4,14 +4,17 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/line/line-bot-sdk-go/linebot"
 	"github.com/mochisuna/linebot-sample/config"
+	"github.com/mochisuna/linebot-sample/domain"
 )
 
 const (
 	ActionEventOpen        = "open"
 	ActionEventClose       = "close"
+	ActionEventList        = "list"
 	ActionEventParticipate = "participate"
 	ActionEventLeave       = "leave"
 	ActionEventHelp        = "help"
@@ -58,10 +61,10 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 					response = s.getMessageStartEvent(ctx, req)
 				case ActionEventFinish:
 					response = s.getMessageFinishEvent(ctx, req)
-				case ActionEventParticipate:
-					response = s.getMessageParticipateEvent(ctx, req)
+				case ActionEventList:
+					response = s.getMessageEvents(ctx, req)
 				case ActionEventLeave:
-					response = linebot.NewTextMessage("TODO イベントに参加している場合のみ、イベントから離脱できるように変更")
+					response = s.getMessageLeaveEvent(ctx, req)
 				case ActionEventHelp:
 					response = linebot.NewTextMessage(HelpMessage)
 				case ActionEventVote:
@@ -69,7 +72,14 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 				case ActionEventCancel:
 					response = linebot.NewTextMessage("処理を中断しました")
 				default:
-					response = linebot.NewTextMessage(message.Text)
+					if strings.Contains(message.Text, ActionEventParticipate) {
+						splits := strings.Split(message.Text, " ")
+						fmt.Println(splits)
+						eventID := domain.EventID(splits[1])
+						response = s.getMessageParticipateEvent(ctx, req, eventID)
+					} else {
+						response = linebot.NewTextMessage(message.Text)
+					}
 				}
 			}
 		case linebot.EventTypeFollow:
