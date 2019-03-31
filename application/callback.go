@@ -29,7 +29,7 @@ func NewCallbackService(eventRepo repository.EventRepository, ownerRepo reposito
 }
 
 func (s *CallbackService) Follow(ctx context.Context, ownerID domain.OwnerID) (*domain.Owner, error) {
-	log.Println("application.Follow")
+	log.Println("called application.Follow")
 	now := int(time.Now().Unix())
 	owner := &domain.Owner{
 		ID:        ownerID,
@@ -50,12 +50,12 @@ func (s *CallbackService) Follow(ctx context.Context, ownerID domain.OwnerID) (*
 }
 
 func (s *CallbackService) GetEventByOwnerID(ownerID domain.OwnerID, status domain.EventStatus) (*domain.Event, error) {
-	log.Println("application.GetEventByOwnerID")
+	log.Println("called application.GetEventByOwnerID")
 	return s.eventRepo.SelectByOwnerID(ownerID, &status)
 }
 
 func (s *CallbackService) UpdateEventStatus(ctx context.Context, ownerID domain.OwnerID, status domain.EventStatus) (*domain.Event, error) {
-	log.Println("application.UpdateEventStatus")
+	log.Println("called application.UpdateEventStatus")
 	event, err := s.eventRepo.SelectByOwnerID(ownerID, &status)
 	if err != nil {
 		return nil, err
@@ -70,7 +70,7 @@ func (s *CallbackService) UpdateEventStatus(ctx context.Context, ownerID domain.
 }
 
 func (s *CallbackService) RegisterEvent(ctx context.Context, ownerID domain.OwnerID) (*domain.Event, error) {
-	log.Println("application.RegisterEvent")
+	log.Println("called application.RegisterEvent")
 	now := int(time.Now().Unix())
 	event := &domain.Event{
 		ID:        domain.EventID(xid.New().String()),
@@ -86,18 +86,18 @@ func (s *CallbackService) RegisterEvent(ctx context.Context, ownerID domain.Owne
 	return event, err
 }
 func (s *CallbackService) GetParticipatedEvent(userID domain.UserID) (*domain.User, error) {
-	log.Println("application.GetParticipatedEvent")
+	log.Println("called application.GetParticipatedEvent")
 	return s.userRepo.SelectByIDAndStatus(&userID, true)
 }
 
 func (s *CallbackService) GetActiveEvents() ([]domain.Event, error) {
-	log.Println("application.GetActiveEvents")
+	log.Println("called application.GetActiveEvents")
 	status := domain.EVENT_OPEN
 	return s.eventRepo.SelectList(&status)
 }
 
 func (s *CallbackService) ParticipateEvent(ctx context.Context, userID *domain.UserID, eventID *domain.EventID) error {
-	log.Println("application.ParticipateEvent")
+	log.Println("called application.ParticipateEvent")
 	now := int(time.Now().Unix())
 	user := &domain.User{
 		ID:             *userID,
@@ -124,12 +124,12 @@ func (s *CallbackService) ParticipateEvent(ctx context.Context, userID *domain.U
 }
 
 func (s *CallbackService) GetEventByEventID(eventID domain.EventID) (*domain.Event, error) {
-	log.Println("application.GetEventByEventID")
+	log.Println("called application.GetEventByEventID")
 	return s.eventRepo.SelectByEventID(eventID)
 }
 
 func (s *CallbackService) LeaveEvent(ctx context.Context, userID *domain.UserID, eventID *domain.EventID) error {
-	log.Println("application.LeaveEvent")
+	log.Println("called application.LeaveEvent")
 	now := int(time.Now().Unix())
 	user := &domain.User{
 		ID:             *userID,

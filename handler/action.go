@@ -15,7 +15,7 @@ import (
 
 // getMessageFollowAction はbotをフォローした際に実行されるアクション
 func (s *Server) getMessageFollowAction(ctx context.Context, req *linebot.Event) linebot.SendingMessage {
-	log.Println("action.getMessageFollowAction")
+	log.Println("called action.getMessageFollowAction")
 	ownerID := domain.OwnerID(req.Source.UserID)
 	requestID := middleware.GetReqID(ctx)
 	profile, err := s.Bot.GetProfile(req.Source.UserID).Do()
@@ -36,7 +36,7 @@ func (s *Server) getMessageFollowAction(ctx context.Context, req *linebot.Event)
 
 // isOwnerOfEvent は自分がオーナーのイベントがあるかどうかを返します
 func (s *Server) isOwnerOfEvent(ownerID domain.OwnerID) (bool, error) {
-	log.Println("action.isOwnerOfEvent")
+	log.Println("called action.isOwnerOfEvent")
 	ref, err := s.CallbackService.GetEventByOwnerID(ownerID, domain.EVENT_OPEN)
 	if err != nil {
 		if err != sql.ErrNoRows {
@@ -50,7 +50,7 @@ func (s *Server) isOwnerOfEvent(ownerID domain.OwnerID) (bool, error) {
 
 // getMessageOpenEvent イベント開催アクション
 func (s *Server) getMessageOpenEvent(ctx context.Context, req *linebot.Event) linebot.SendingMessage {
-	log.Println("action.getMessageOpenEvent")
+	log.Println("called action.getMessageOpenEvent")
 	requestID := middleware.GetReqID(ctx)
 	ownerID := domain.OwnerID(req.Source.UserID)
 
@@ -100,7 +100,7 @@ func (s *Server) getMessageOpenEvent(ctx context.Context, req *linebot.Event) li
 }
 
 func (s *Server) getMessageStartEvent(ctx context.Context, req *linebot.Event) linebot.SendingMessage {
-	log.Println("action.getMessageStartEvent")
+	log.Println("called action.getMessageStartEvent")
 	requestID := middleware.GetReqID(ctx)
 	ownerID := domain.OwnerID(req.Source.UserID)
 	owned, err := s.isOwnerOfEvent(ownerID)
@@ -121,7 +121,7 @@ func (s *Server) getMessageStartEvent(ctx context.Context, req *linebot.Event) l
 }
 
 func (s *Server) getMessageCloseEvent(ctx context.Context, req *linebot.Event) linebot.SendingMessage {
-	log.Println("action.getMessageCloseEvent")
+	log.Println("called action.getMessageCloseEvent")
 	requestID := middleware.GetReqID(ctx)
 	ownerID := domain.OwnerID(req.Source.UserID)
 	owned, err := s.isOwnerOfEvent(ownerID)
@@ -143,7 +143,7 @@ func (s *Server) getMessageCloseEvent(ctx context.Context, req *linebot.Event) l
 }
 
 func (s *Server) getMessageFinishEvent(ctx context.Context, req *linebot.Event) linebot.SendingMessage {
-	log.Println("action.getMessageFinishEvent")
+	log.Println("called action.getMessageFinishEvent")
 	requestID := middleware.GetReqID(ctx)
 	ownerID := domain.OwnerID(req.Source.UserID)
 	owned, err := s.isOwnerOfEvent(ownerID)
@@ -163,7 +163,7 @@ func (s *Server) getMessageFinishEvent(ctx context.Context, req *linebot.Event) 
 }
 
 func (s *Server) getMessageEvents(ctx context.Context, req *linebot.Event) linebot.SendingMessage {
-	log.Println("action.getMessageEvents")
+	log.Println("called action.getMessageEvents")
 	requestID := middleware.GetReqID(ctx)
 	userID := domain.UserID(req.Source.UserID)
 	// owned, err := s.isOwnerOfEvent(domain.OwnerID(userID))
@@ -218,7 +218,7 @@ func (s *Server) getMessageEvents(ctx context.Context, req *linebot.Event) lineb
 }
 
 func (s *Server) getMessageParticipateEvent(ctx context.Context, req *linebot.Event, eventID domain.EventID) linebot.SendingMessage {
-	log.Println("action.getMessageParticipateEvent")
+	log.Println("called action.getMessageParticipateEvent")
 	requestID := middleware.GetReqID(ctx)
 	userID := domain.UserID(req.Source.UserID)
 	// owned, err := s.isOwnerOfEvent(domain.OwnerID(userID))
@@ -263,7 +263,7 @@ func (s *Server) getMessageParticipateEvent(ctx context.Context, req *linebot.Ev
 }
 
 func (s *Server) getMessageLeaveEvent(ctx context.Context, req *linebot.Event) linebot.SendingMessage {
-	log.Println("action.getMessageLeaveEvent")
+	log.Println("called action.getMessageLeaveEvent")
 	requestID := middleware.GetReqID(ctx)
 	userID := domain.UserID(req.Source.UserID)
 	user, err := s.CallbackService.GetParticipatedEvent(userID)
