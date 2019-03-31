@@ -96,6 +96,9 @@ func (r *eventRepository) SelectByOwnerID(ownerID domain.OwnerID, status *domain
 	err := squirrel.Select("event_id", "owner_id", "status", "created_at", "updated_at").
 		From(EVENT_STATUSES).
 		Where(param).
+		Where(squirrel.NotEq{
+			"status": domain.EVENT_CLOSED,
+		}).
 		RunWith(r.dbs.DB).
 		QueryRow().
 		Scan(

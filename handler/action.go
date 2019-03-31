@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/go-chi/chi/middleware"
 	"github.com/line/line-bot-sdk-go/linebot"
@@ -37,7 +38,7 @@ func (s *Server) getMessageFollowAction(ctx context.Context, req *linebot.Event)
 // isOwnerOfEvent は自分がオーナーのイベントがあるかどうかを返します
 func (s *Server) isOwnerOfEvent(ownerID domain.OwnerID) (bool, error) {
 	log.Println("called action.isOwnerOfEvent")
-	ref, err := s.CallbackService.GetEventByOwnerID(ownerID, domain.EVENT_OPEN)
+	_, err := s.CallbackService.GetEventByOwnerID(ownerID, domain.EVENT_OPEN)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			return false, err
@@ -45,7 +46,7 @@ func (s *Server) isOwnerOfEvent(ownerID domain.OwnerID) (bool, error) {
 		// sql.ErrNoRows ならすぐに返却してよい
 		return false, nil
 	}
-	return ref.OwnerID == ownerID, nil
+	return true, nil
 }
 
 // getMessageOpenEvent イベント開催アクション
@@ -73,7 +74,6 @@ func (s *Server) getMessageOpenEvent(ctx context.Context, req *linebot.Event) li
 		log.Printf("%v| error in participated event: %#v", requestID, user.EventID)
 		return linebot.NewTextMessage("あなたは既に別のイベントに参加しています")
 	}
-
 	_, err = s.CallbackService.GetEventByOwnerID(ownerID, domain.EVENT_STABDBY)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -111,7 +111,7 @@ func (s *Server) getMessageStartEvent(ctx context.Context, req *linebot.Event) l
 	if owned {
 		return linebot.NewTextMessage("あなたが主催のイベントが開催中です")
 	}
-	res, err := s.CallbackService.UpdateEventStatus(ctx, ownerID, domain.EVENT_STABDBY)
+	res, err := s.CallbackService.UpdateEventStatus(ctx, ownerID, domain.EVENT_OPEN)
 	if err != nil {
 		log.Printf("%v| error reason: %#v", requestID, err.Error())
 		return linebot.NewTextMessage("ステータス更新時にエラーが発生しました")
@@ -280,4 +280,92 @@ func (s *Server) getMessageLeaveEvent(ctx context.Context, req *linebot.Event) l
 	}
 	return linebot.NewTextMessage("イベントから離脱しました")
 
+}
+
+func voteString(vote domain.VOTE_STATUS) string {
+	ret := ""
+	switch vote {
+	case domain.GREAT:
+		ret = "よさみが深い"
+	case domain.GOOD:
+		ret = "よし"
+	case domain.NOT_GOOD:
+		ret = "まぁまぁ"
+	case domain.BAD:
+		ret = "わろし"
+	}
+	return ret
+}
+
+// getMessageOpenEvent イベント開催アクション
+func (s *Server) getMessageVoteList(ctx context.Context, req *linebot.Event) linebot.SendingMessage {
+	log.Println("called action.getMessageVoteList")
+	requestID := middleware.GetReqID(ctx)
+	userID := domain.UserID(req.Source.UserID)
+	owned, err := s.isOwnerOfEvent(domain.OwnerID(userID))
+	if err != nil {
+		log.Printf("%v| error reason: %#v", requestID, err.Error())
+		return linebot.NewTextMessage("イベント参照時にエラーが発生しました")
+	}
+	if owned {
+		return linebot.NewTextMessage("あなたが主催のイベントが開催中です")
+	}
+	_, err = s.CallbackService.GetParticipatedEvent(userID)
+	if err != nil {
+		log.Printf("%v| error reason: %#v", requestID, err.Error())
+		if err == sql.ErrNoRows {
+			return linebot.NewTextMessage("あなたはまだイベントに参加していません")
+		}
+		return linebot.NewTextMessage("参加イベント情報取得時にエラーが発生しました")
+	}
+
+	return linebot.NewTemplateMessage(
+		"vote event",
+		linebot.NewButtonsTemplate(
+			"",
+			"投票",
+			"このイベントについて投票します",
+			linebot.NewMessageAction(voteString(domain.GREAT), fmt.Sprintf("voted %#v", domain.GREAT)),
+			linebot.NewMessageAction(voteString(domain.GOOD), fmt.Sprintf("voted %#v", domain.GOOD)),
+			linebot.NewMessageAction(voteString(domain.NOT_GOOD), fmt.Sprintf("voted %#v", domain.NOT_GOOD)),
+			linebot.NewMessageAction(voteString(domain.BAD), fmt.Sprintf("voted %#v", domain.BAD)),
+		),
+	)
+}
+
+// getMessageOpenEvent イベント開催アクション
+func (s *Server) getMessageVoteEvent(ctx context.Context, req *linebot.Event, votes string) linebot.SendingMessage {
+	log.Println("called action.getMessageVoteEvent")
+	requestID := middleware.GetReqID(ctx)
+	userID := domain.UserID(req.Source.UserID)
+
+	vote, err := strconv.Atoi(votes)
+	if err != nil {
+		log.Printf("%v| error reason: %#v", requestID, err.Error())
+		return linebot.NewTextMessage("参加イベント情報取得時にエラーが発生しました")
+	}
+	owned, err := s.isOwnerOfEvent(domain.OwnerID(userID))
+	if err != nil {
+		log.Printf("%v| error reason: %#v", requestID, err.Error())
+		return linebot.NewTextMessage("イベント参照時にエラーが発生しました")
+	}
+	if owned {
+		return linebot.NewTextMessage("あなたが主催のイベントが開催中です")
+	}
+	user, err := s.CallbackService.GetParticipatedEvent(userID)
+	if err != nil {
+		log.Printf("%v| error reason: %#v", requestID, err.Error())
+		if err == sql.ErrNoRows {
+			return linebot.NewTextMessage("あなたはまだイベントに参加していません")
+		}
+		return linebot.NewTextMessage("参加イベント情報取得時にエラーが発生しました")
+	}
+	status := domain.VOTE_STATUS(vote)
+	err = s.CallbackService.VoteEvent(ctx, &userID, &user.EventID, status)
+	if err != nil {
+		log.Printf("%v| error reason: %#v", requestID, err.Error())
+		return linebot.NewTextMessage("投票時にエラーが発生しました")
+	}
+
+	return linebot.NewTextMessage(voteString(status) + "に投票しました")
 }

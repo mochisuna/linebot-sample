@@ -16,4 +16,5 @@ type CallbackService interface {
 	GetParticipatedEvent(domain.UserID) (*domain.User, error)
 	ParticipateEvent(context.Context, *domain.UserID, *domain.EventID) error
 	LeaveEvent(context.Context, *domain.UserID, *domain.EventID) error
+	VoteEvent(context.Context, *domain.UserID, *domain.EventID, domain.VOTE_STATUS) error
 }

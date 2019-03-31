@@ -56,7 +56,7 @@ func (s *CallbackService) GetEventByOwnerID(ownerID domain.OwnerID, status domai
 
 func (s *CallbackService) UpdateEventStatus(ctx context.Context, ownerID domain.OwnerID, status domain.EventStatus) (*domain.Event, error) {
 	log.Println("called application.UpdateEventStatus")
-	event, err := s.eventRepo.SelectByOwnerID(ownerID, &status)
+	event, err := s.eventRepo.SelectByOwnerID(ownerID, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -140,5 +140,20 @@ func (s *CallbackService) LeaveEvent(ctx context.Context, userID *domain.UserID,
 	}
 	return s.userRepo.WithTransaction(ctx, func(tx *sql.Tx) error {
 		return s.userRepo.Update(user, tx)
+	})
+}
+
+func (s *CallbackService) VoteEvent(ctx context.Context, userID *domain.UserID, eventID *domain.EventID, vote domain.VOTE_STATUS) error {
+	log.Println("called application.VoteEvent")
+	now := int(time.Now().Unix())
+	user := &domain.User{
+		ID:        *userID,
+		EventID:   *eventID,
+		Vote:      vote,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+	return s.userRepo.WithTransaction(ctx, func(tx *sql.Tx) error {
+		return s.userRepo.Vote(user, tx)
 	})
 }

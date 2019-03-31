@@ -19,6 +19,7 @@ const (
 	ActionEventLeave       = "leave"
 	ActionEventHelp        = "help"
 	ActionEventVote        = "vote"
+	ActionEventVoted       = "voted"
 	ActionEventStart       = "start"
 	ActionEventFinish      = "finish"
 	ActionEventCancel      = "cancel"
@@ -68,15 +69,17 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 				case ActionEventHelp:
 					response = linebot.NewTextMessage(HelpMessage)
 				case ActionEventVote:
-					response = linebot.NewTextMessage("6")
+					response = s.getMessageVoteList(ctx, req)
 				case ActionEventCancel:
 					response = linebot.NewTextMessage("処理を中断しました")
 				default:
 					if strings.Contains(message.Text, ActionEventParticipate) {
 						splits := strings.Split(message.Text, " ")
-						fmt.Println(splits)
 						eventID := domain.EventID(splits[1])
 						response = s.getMessageParticipateEvent(ctx, req, eventID)
+					} else if strings.Contains(message.Text, ActionEventVoted) {
+						splits := strings.Split(message.Text, " ")
+						response = s.getMessageVoteEvent(ctx, req, splits[1])
 					} else {
 						response = linebot.NewTextMessage(message.Text)
 					}
