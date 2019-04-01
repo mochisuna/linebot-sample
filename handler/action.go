@@ -17,8 +17,8 @@ import (
 // getMessageFollowAction はbotをフォローした際に実行されるアクション
 func (s *Server) getMessageFollowAction(ctx context.Context, req *linebot.Event) linebot.SendingMessage {
 	log.Println("called action.getMessageFollowAction")
-	ownerID := domain.OwnerID(req.Source.UserID)
 	requestID := middleware.GetReqID(ctx)
+	ownerID := domain.OwnerID(req.Source.UserID)
 	profile, err := s.Bot.GetProfile(req.Source.UserID).Do()
 	if err != nil {
 		log.Printf("%v| error reason: %#v", requestID, err.Error())
@@ -166,14 +166,14 @@ func (s *Server) getMessageEvents(ctx context.Context, req *linebot.Event) lineb
 	log.Println("called action.getMessageEvents")
 	requestID := middleware.GetReqID(ctx)
 	userID := domain.UserID(req.Source.UserID)
-	// owned, err := s.isOwnerOfEvent(domain.OwnerID(userID))
-	// if err != nil {
-	// 	log.Printf("%v| error reason: %#v", requestID, err.Error())
-	// 	return linebot.NewTextMessage("イベント参照時にエラーが発生しました")
-	// }
-	// if owned {
-	// 	return linebot.NewTextMessage("あなたが主催のイベントが開催中です")
-	// }
+	owned, err := s.isOwnerOfEvent(domain.OwnerID(userID))
+	if err != nil {
+		log.Printf("%v| error reason: %#v", requestID, err.Error())
+		return linebot.NewTextMessage("イベント参照時にエラーが発生しました")
+	}
+	if owned {
+		return linebot.NewTextMessage("あなたが主催のイベントが開催中です")
+	}
 	user, err := s.CallbackService.GetParticipatedEvent(userID)
 	if err != nil {
 		if err != sql.ErrNoRows {
@@ -221,14 +221,14 @@ func (s *Server) getMessageParticipateEvent(ctx context.Context, req *linebot.Ev
 	log.Println("called action.getMessageParticipateEvent")
 	requestID := middleware.GetReqID(ctx)
 	userID := domain.UserID(req.Source.UserID)
-	// owned, err := s.isOwnerOfEvent(domain.OwnerID(userID))
-	// if err != nil {
-	// 	log.Printf("%v| error reason: %#v", requestID, err.Error())
-	// 	return linebot.NewTextMessage("イベント参照時にエラーが発生しました")
-	// }
-	// if owned {
-	// 	return linebot.NewTextMessage("あなたが主催のイベントが開催中です")
-	// }
+	owned, err := s.isOwnerOfEvent(domain.OwnerID(userID))
+	if err != nil {
+		log.Printf("%v| error reason: %#v", requestID, err.Error())
+		return linebot.NewTextMessage("イベント参照時にエラーが発生しました")
+	}
+	if owned {
+		return linebot.NewTextMessage("あなたが主催のイベントが開催中です")
+	}
 	event, err := s.CallbackService.GetEventByEventID(eventID)
 	if err != nil {
 		log.Printf("%v| error reason: %#v", requestID, err.Error())
