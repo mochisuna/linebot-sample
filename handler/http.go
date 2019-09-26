@@ -67,6 +67,11 @@ func (s *Server) ListenAndServe() error {
 	r.Route("/v1", func(r chi.Router) {
 		r.Post("/callback", s.callback)
 	})
+	r.Route("/health", func(r chi.Router) {
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+	})
 
 	s.Handler = r
 	return s.Server.ListenAndServe()

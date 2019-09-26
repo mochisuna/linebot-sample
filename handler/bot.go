@@ -54,27 +54,30 @@ func (s *Server) callback(w http.ResponseWriter, r *http.Request) {
 			switch message := req.Message.(type) {
 			case *linebot.TextMessage:
 				switch message.Text {
+				// リッチメニューボタン
 				case ActionEventOpen:
 					response = s.getMessageOpenEvent(ctx, req)
 				case ActionEventClose:
 					response = s.getMessageCloseEvent(ctx, req)
-				case ActionEventStart:
-					response = s.getMessageStartEvent(ctx, req)
-				case ActionEventFinish:
-					response = s.getMessageFinishEvent(ctx, req)
 				case ActionEventList:
 					response = s.getMessageEvents(ctx, req)
+				case ActionEventVote:
+					response = s.getMessageVoteList(ctx, req)
 				case ActionEventLeave:
 					response = s.getMessageLeaveEvent(ctx, req)
 				case ActionEventHelp:
 					response = linebot.NewTextMessage(HelpMessage)
-				case ActionEventVote:
-					response = s.getMessageVoteList(ctx, req)
+				// 確認処理ボタン
+				case ActionEventStart:
+					response = s.getMessageStartEvent(ctx, req)
+				case ActionEventFinish:
+					response = s.getMessageFinishEvent(ctx, req)
 				case ActionEventCancel:
 					response = linebot.NewTextMessage("処理を中断しました")
 				default:
 					if strings.Contains(message.Text, ActionEventParticipate) {
 						splits := strings.Split(message.Text, " ")
+						log.Println(message.Text)
 						eventID := domain.EventID(splits[1])
 						response = s.getMessageParticipateEvent(ctx, req, eventID)
 					} else if strings.Contains(message.Text, ActionEventVoted) {
