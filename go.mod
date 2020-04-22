@@ -12,6 +12,6 @@ require (
 	github.com/mochisuna/load-test-sample v0.0.0-20190315111847-1166990ad3a6 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/rs/xid v1.2.1
-	github.com/unrolled/render v1.0.2
+	github.com/unrolled/render v1.0.3
 	gopkg.in/go-playground/validator.v9 v9.27.0
 )
