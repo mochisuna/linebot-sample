@@ -11,7 +11,7 @@ require (
 	github.com/line/line-bot-sdk-go v6.4.0+incompatible
 	github.com/mochisuna/load-test-sample v0.0.0-20190315111847-1166990ad3a6 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
-	github.com/rs/xid v1.2.1
+	github.com/rs/xid v1.3.0
 	github.com/unrolled/render v1.0.2
 	gopkg.in/go-playground/validator.v9 v9.27.0
 )
