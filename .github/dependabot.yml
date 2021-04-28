@@ -1,0 +1,18 @@
+version: 2
+updates:
+- package-ecosystem: gomod
+  directory: "/"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+  reviewers:
+  - mochisuna
+  assignees:
+  - mochisuna
+  ignore:
+  - dependency-name: github.com/unrolled/render
+    versions:
+    - 1.0.3
+  - dependency-name: github.com/go-chi/cors
+    versions:
+    - 1.1.1
